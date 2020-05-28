@@ -4,7 +4,7 @@
 
 To make it easier for users to use multiple bump bots, SBLP aims to allow bumping with a single command on any compatible bump bot.
 
-## Wording
+## Terminology
 
 In the following documentation, we use "SBLP" or simply "Protocol" to refer to this protocol. The "user" is the user that used the bump command on a guild. "Bumping Bot" or "Requesting Bot" is the bot that initially received the command by the user and is now requesting the other bots to bump the server where the bump was requested on. "Receiving Bot" is the bot that received the bump requet by the bumping bot. The "guild" simply is the guild where the user executed the bump command on. The messages that are sent between the bots to communicate are either called the "request" and the "response" or just the "message payload" or "message".
 
