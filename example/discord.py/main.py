@@ -2,12 +2,14 @@
 # I'm not actually a python dev and this was my first thing I've ever done in python because Stefan wouldn't know how to do it
 # So if there are bad design choices, I'm sorry :3
 
-import discord
-import config
-import jishaku
 import asyncio
 import json
+
+import discord
+import jishaku
 from discord.ext import commands
+
+import config
 
 bot = commands.AutoShardedBot(max_messages=5000, command_prefix=config.prefix)
 bot.load_extension("jishaku")
@@ -44,7 +46,7 @@ def get_sblp_post_channel():
 
 async def sblp_post_bump_request(guild, channel, user):
     sblp = get_sblp_post_channel()
-    await sblp.send(json.dumps({'type': 'REQUEST', 'guild': guild, 'channel': channel, 'user': user}, indent=2))
+    return await sblp.send(json.dumps({'type': 'REQUEST', 'guild': guild, 'channel': channel, 'user': user}, indent=2))
 
 
 def sblp_parse_payload(content):
@@ -69,7 +71,7 @@ async def bump(ctx):
 
     async def nested():
         # Post request
-        await sblp_post_bump_request(ctx.guild.id.__str__(), ctx.channel.id.__str__(), ctx.author.id.__str__())
+        requestMessage = await sblp_post_bump_request(ctx.guild.id.__str__(), ctx.channel.id.__str__(), ctx.author.id.__str__())
 
         # Define on message function
         def on_message(message):
@@ -77,7 +79,7 @@ async def bump(ctx):
             sblp = get_sblp_post_channel()
             if(message.channel.id == sblp.id and author != bot.user):
                 payload = sblp_parse_payload(message.content)
-                if(payload):
+                if(payload and 'type' in payload and 'response' in payload and payload['response'] == requestMessage.id.__str__()):
                     # Save payload
                     if(payload['type'] == MessageType.START):
                         if(author.id in sblpEntities):
