@@ -65,7 +65,7 @@ This message is used to inform the bumping bot about an error that occured. It c
 | response | Snowflake (String) | The ID of the message in which the bump was requested.
 | code | ErrorCode | A code that can be used by the bumping bot to better understand the error message.
 | nextBump | Integer (Unix Milliseconds, only on ErrorCode.COOLDOWN) | When the guild can be bumped again.
-| message | String | A message explaining why the bump failed. IT is up to the bumping bot to display this message.
+| message | String | A message explaining why the bump failed. It is up to the bumping bot to display this message.
 
 ## Additional Objects
 
