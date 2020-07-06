@@ -6,9 +6,15 @@ To make it easier for users to use multiple bump bots, SBLP aims to allow bumpin
 
 ## Terminology
 
-In the following documentation, we use "SBLP" or simply "Protocol" to refer to this protocol. The "user" is the user that used the bump command on a guild. "Bumping Bot" or "Requesting Bot" is the bot that initially received the command by the user and is now requesting the other bots to bump the server where the bump was requested on. "Receiving Bot" is the bot that received the bump requet by the bumping bot. The "guild" simply is the guild where the user executed the bump command on. The messages that are sent between the bots to communicate are either called the "request" and the "response" or just the "message payload" or "message".
+In the following documentation, we use "SBLP" or simply "Protocol" to refer to this protocol.
+
+There are two different versions of this protocol; SBLP via Discord and SBLP via HTTP. The difference is described further down.
+
+The "user" is the user that used the bump command on a guild. "Bumping Bot" or "Requesting Bot" is the bot that initially received the command by the user and is now requesting the other bots to bump the server where the bump was requested on. "Receiving Bot" is the bot that received the bump requet by the bumping bot. The "guild" simply is the guild where the user executed the bump command on. The messages that are sent between the bots to communicate are either called the "request" and the "response" or just the "message payload" or "message".
 
 ## Communication
+
+### SBLP via Discord
 
 When a user bumps their server with a bump bot, the bump bot sends a message to a channel on a guild. While in most cases this will be a channel on the official SBLP guild, it can be any channel as long as other compatible bump bots are listening to messages in that channel.
 
@@ -16,9 +22,39 @@ The messages sent are plain text (no embeds) and formatted in JSON. To respond t
 
 Because this type of communication uses a push technique and requires the bumping bot to await responses from recipients without actively being able to block the thread, responses can take some time and are optional. To solve this issue, we recommend having a handler class that creates a temporary object for the current bump in progress and destroys it after the bump is finished. The bot developers however can choose any solution they want, as long as it is compatible with this protocol.
 
+### SBLP via HTTP
+
+This is the new and more scalable version of SBLP. When a user bumps their server with a bump bot, the bump bot sends HTTP requests to pre-defined urls of other bump bots.
+
+The sent requests have a JSON body. Unlike SBLP via Discord, this only does return one response payload once the bump has finished or an error occured.
+
+During the bumping process of a receiving process, the HTTP request is waiting and the response will be sent once the bumping process has been finished.
+
+Bump bots that use a queue-like system to handle bumps can directly return a success response or an error if theres a error known pre-bumping, e.g. cooldown or missing setup error.
+
+#### Endpoints
+
+Bot using SBLP via HTTP need to have a webserver up and running. This webserver's URL is then set in the configuration of the other bots. The other bots use this URL to make requests to the bot.
+
+**Example Base URL:** https://openbump.bot.discord.one/sblp/
+
+##### POST /request
+
+###### Body
+
+A BumpRequest object. The "type" does not need to be passed.
+
+###### Response
+
+Either a BumpFinishedResponse or BumpErrorResponse object. The "type" needs to be passed.
+
+###### Headers
+
+The "Authorization" header according to the Authorization secion.
+
 ### Example
 
-Open Bump solves this with a similar solution as mentioned above: It has a SBLPBumpEntity class which keeps track of the progress and state of other bots, and a SBLP class that manages the bump entity instances. When a bump request is received (or created), it creates a new instance of the SBLPBumpEntity class and registers it in the SBLP class. The SBLP class then is able to forward incoming SBLP payloads to the corresponding bump entity using the response ID. After 60 seconds, the SBLPBumpEntity instance automatically unregisters itself from the SBLP class and marks all outstanding bumps with a timeout.
+Open Bump solves this with a similar solution as mentioned above: It has a SBLPBumpEntity class which keeps track of the progress and state of other bots, and a SBLP class that manages the bump entity instances. When a bump request is received (or created), it creates a new instance of the SBLPBumpEntity class and registers it in the SBLP class. The SBLP class then is able to forward incoming SBLP payloads or the http response to the corresponding bump entity using the response ID. After 60 seconds, the SBLPBumpEntity instance automatically unregisters itself from the SBLP class and marks all outstanding bumps with a timeout.
 
 ## Sharding
 
@@ -30,42 +66,46 @@ Even though the same can apply for payload message sending, in this case, the AP
 ### Bump Request
 
 This message is sent when a user requests a bump.
-| Key | Type | Description
-| - | - | -
-| type | MessageType | Always "REQUEST" in this type of message.
-| guild | Snowflake (String) | The ID of the guild where the bump has been requested on.
-| channel | Snowflake (Strnig) | The ID of the channel where the bump has been requested in.
-| user | Snowflake (String) | The ID of the user that requested the bump.
+
+| Key     | Type               | Description                                                 |
+| ------- | ------------------ | ----------------------------------------------------------- |
+| type    | MessageType        | Always "REQUEST" in this type of message.                   |
+| guild   | Snowflake (String) | The ID of the guild where the bump has been requested on.   |
+| channel | Snowflake (Strnig) | The ID of the channel where the bump has been requested in. |
+| user    | Snowflake (String) | The ID of the user that requested the bump.                 |
 
 ### Bump Started Response
 
-This message is sent once the bump request has been received to inform about the starting bump process.
-| Key | Type | Description
-| - | - | -
-| type | MessageType | Always "START" in this type of response.
-| response | Snowflake (String) | The ID of the message in which the bump was requested.
+This message is sent once the bump request has been received to inform about the starting bump process. This response only exists in SBLP via Discord.
+
+| Key      | Type               | Description                                            |
+| -------- | ------------------ | ------------------------------------------------------ |
+| type     | MessageType        | Always "START" in this type of response.               |
+| response | Snowflake (String) | The ID of the message in which the bump was requested. |
 
 ### Bump Finished Response
 
 This message is sent once bumping has been finished (or once the bump has been added to the bump queue).
-| Key | Type | Description
-| - | - | -
-| type | MessageType | Always "FINISHED" in this type of response.
-| response | Snowflake (String) | The ID of the message in which the bump was requested.
-| amount | Integer (Optional) | The amount of guilds where the guild has been bumped to.
-| nextBump | Integer (Unix Milliseconds) | When the guild can be bumped again.
-| message | String (Optional) | A custom success message. It is up to the bumping bot to display this message.
+
+| Key      | Type                        | Description                                                                    |
+| -------- | --------------------------- | ------------------------------------------------------------------------------ |
+| type     | MessageType                 | Always "FINISHED" in this type of response.                                    |
+| response | Snowflake (String)          | The ID of the message in which the bump was requested.                         |
+| amount   | Integer (Optional)          | The amount of guilds where the guild has been bumped to.                       |
+| nextBump | Integer (Unix Milliseconds) | When the guild can be bumped again.                                            |
+| message  | String (Optional)           | A custom success message. It is up to the bumping bot to display this message. |
 
 ### Bump Error Response
 
 This message is used to inform the bumping bot about an error that occured. It can only be sent once during a bump process and the bot should abort process after an error was sent.
-| Key | Type | Description
-| - | - | -
-| type | MessageType | Always "ERROR" in this type of response
-| response | Snowflake (String) | The ID of the message in which the bump was requested.
-| code | ErrorCode | A code that can be used by the bumping bot to better understand the error message.
-| nextBump | Integer (Unix Milliseconds, only on ErrorCode.COOLDOWN) | When the guild can be bumped again.
-| message | String | A message explaining why the bump failed. It is up to the bumping bot to display this message.
+
+| Key      | Type                                                    | Description                                                                                    |
+| -------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| type     | MessageType                                             | Always "ERROR" in this type of response                                                        |
+| response | Snowflake (String)                                      | The ID of the message in which the bump was requested.                                         |
+| code     | ErrorCode                                               | A code that can be used by the bumping bot to better understand the error message.             |
+| nextBump | Integer (Unix Milliseconds, only on ErrorCode.COOLDOWN) | When the guild can be bumped again.                                                            |
+| message  | String                                                  | A message explaining why the bump failed. It is up to the bumping bot to display this message. |
 
 ## Additional Objects
 
@@ -92,8 +132,14 @@ The ErrorCode object is used in the bump error response to allow the bumping bot
 
 ## Authentication
 
+### SBLP via Discord
+
 Payload messages are sent by the actual bump bot. It is up to the receiving bot to determine which bots' requests will be interpreted.
 We suggest to only interprete bump requests in a whitelisted channel.
+
+## SBLP via HTTP
+
+Bots authorize themselves by a predefined authorization header value which is sent with each request.
 
 # Suggestions
 
