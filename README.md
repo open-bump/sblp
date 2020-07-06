@@ -54,6 +54,10 @@ Bots authorize themselves by a predefined value in the authorization header whic
 **Headers:** The "Authorization" header according to the [Authorization](#http-authentication) section.  
 **Exaple URL:** https://openbump.bot.discord.one/sblp/request/
 
+### Domains
+
+If you own a bump bot and need a domain, you can contact Looat#0001 on Discord to get a `yourbot.bot.discord.one` domain for your IP. This domain will use cloudflare's proxy, so your server's actual IP address will be hidden.
+
 ## Example
 
 Open Bump solves this with a similar solution as mentioned above: It has a SBLPBumpEntity class which keeps track of the progress and state of other bots, and a SBLP class that manages the bump entity instances. When a bump request is received (or created), it creates a new instance of the SBLPBumpEntity class and registers it in the SBLP class. The SBLP class then is able to forward incoming SBLP payloads or the http response to the corresponding bump entity using the response ID. After 60 seconds, the SBLPBumpEntity instance automatically unregisters itself from the SBLP class and marks all outstanding bumps with a timeout.
