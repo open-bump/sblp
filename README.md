@@ -64,7 +64,7 @@ Open Bump solves this with a similar solution as mentioned above: It has a SBLPB
 
 ## Sharding
 
-As communication will always be done through a channel, it will always be received on the shard with that channel on it. It is up to the receiving bot to forward the bump payload messages to the corresponding shard. We recommend using built-in solutions like Discord.js' ShardManager or Discord.py's AutoSharding.
+As communication will always be done through a channel (unless over HTTP), it will always be received on the shard with that channel on it. It is up to the receiving bot to forward the bump payload messages to the corresponding shard. We recommend using built-in solutions like Discord.js' ShardManager or Discord.py's AutoSharding.
 Even though the same can apply for payload message sending, in this case, the API could also be used directly (direct HTTP request from any shard) to bypass sharding.
 
 ## Message Payloads
@@ -82,7 +82,8 @@ This message is sent when a user requests a bump.
 
 ### Bump Started Response
 
-This message is sent once the bump request has been received to inform about the starting bump process. This response only exists in SBLP via Discord.
+This message is sent once the bump request has been received to inform about the starting bump process. 
+> **This response only exists in SBLP via Discord.**
 
 | Key      | Type               | Description                                            |
 | -------- | ------------------ | ------------------------------------------------------ |
@@ -93,13 +94,13 @@ This message is sent once the bump request has been received to inform about the
 
 This message is sent once bumping has been finished (or once the bump has been added to the bump queue).
 
-| Key      | Type                        | Description                                                                    |
-| -------- | --------------------------- | ------------------------------------------------------------------------------ |
-| type     | MessageType                 | Always "FINISHED" in this type of response.                                    |
-| response | Snowflake (String)          | The ID of the message in which the bump was requested.                         |
-| amount   | Integer (Optional)          | The amount of guilds where the guild has been bumped to.                       |
-| nextBump | Integer (Unix Milliseconds) | When the guild can be bumped again.                                            |
-| message  | String (Optional)           | A custom success message. It is up to the bumping bot to display this message. |
+| Key      | Type                         | Description                                                                                         |
+| -------- | ---------------------------- | --------------------------------------------------------------------------------------------------- |
+| type     | MessageType                  | Always "FINISHED" in this type of response.                                                         |
+| response | Snowflake (String) (Optional)| The ID of the message in which the bump was requested. If this is via HTTP, this field is optional. |
+| amount   | Integer (Optional)           | The amount of guilds where the guild has been bumped to.                                            |
+| nextBump | Integer (Unix Milliseconds)  | When the guild can be bumped again.                                                                 |
+| message  | String (Optional)            | A custom success message. It is up to the bumping bot to display this message.                      |
 
 ### Bump Error Response
 
@@ -108,7 +109,7 @@ This message is used to inform the bumping bot about an error that occured. It c
 | Key      | Type                                                    | Description                                                                                    |
 | -------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | type     | MessageType                                             | Always "ERROR" in this type of response                                                        |
-| response | Snowflake (String)                                      | The ID of the message in which the bump was requested.                                         |
+| response | Snowflake (String) (Optional)                           | The ID of the message in which the bump was requested.                                         |
 | code     | ErrorCode                                               | A code that can be used by the bumping bot to better understand the error message.             |
 | nextBump | Integer (Unix Milliseconds, only on ErrorCode.COOLDOWN) | When the guild can be bumped again.                                                            |
 | message  | String                                                  | A message explaining why the bump failed. It is up to the bumping bot to display this message. |
@@ -118,12 +119,12 @@ This message is used to inform the bumping bot about an error that occured. It c
 ### MessageType Object
 
 The MessageType object is used to identify the different types of message payloads.
-| MessageType | Description
-| - | -
-| REQUEST | Used for bump requests.
-| START | Used for bump started responses.
-| FINISHED | Used for bump finished responses.
-| ERROR | Used for bump error responses.
+| MessageType | Description                      |
+| ----------- | -------------------------------- |
+| REQUEST     | Used for bump requests.          |
+| START       | Used for bump started responses. |
+| FINISHED    | Used for bump finished responses.|
+| ERROR       | Used for bump error responses.   |
 
 ### ErrorCode Object
 
@@ -134,6 +135,7 @@ The ErrorCode object is used in the bump error response to allow the bumping bot
 | COOLDOWN | The guild is currently on cooldown with the responding bot.
 | AUTOBUMP | This guild has autobump enabled and can not be bumped manually.
 | NOT_FOUND | The receiving bot is not on the bumping guild.
+| SERVER_ERROR | The bot encountered an error while processing the request, and was unable to continue. This should also return a status code of 5xx.
 | OTHER | If the error codes above do not fit the actual error.
 
 ## Cross compatibility
@@ -145,3 +147,10 @@ This is probably the best solution for both the biggest scalability and compatab
 ## Suggestions
 
 If you have any suggestions for this protocol, please create a pull request, and if you have any questions, please contact me on Discord. My tag is Looat#0001 and you can reach me on [this server](https://discord.gg/eBFu8HF).
+
+## Wrappers for SBLP (http)
+These wrappers for sblp are not created nor maintained by looat.
+
+* SBLPy - An installable python module for incoming and sending SBLP requests. [GitHub](https://github.com/EEKIM10/sblpy) | [pypi/pip](https://pypi.org/project/SBLPy/)
+
+**Got your own module?** Open an [issue](https://github.com/lyne/sblp/issues/new), with the github repository, package manager and URL, and we'll review it!
